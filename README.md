@@ -33,7 +33,8 @@ pip install scipy
 4. 모델 검증
 
 ### 1. 데이터 수집 및 결측치 입력
-- ./2. workspace/1211_JR_preprocessing.ipynb
+- 데이터: "1. data"
+- 처리과정: "2. workspace/1211_JR_preprocessing.ipynb"
 - 각각의 배달데이터, 날씨데이터, 공기오염데이터, 공휴일데이터를 수집 및 병합 
 - 결측치 해결 (강수량, 적설량 -> 0, 기온 -> 검색하여 수동 입력, 미세먼지 -> 결측발생 월 평균값 입력)
 
@@ -94,7 +95,7 @@ sns.regplot(x=X_features['시간대_18'], y=y_target_log, data =df );
 
 ### 3. 모델 학습, 예측, 평가
 #### Linear regression, Ridge, Lasso, Decision Tree Regression, Randomforest Regression 모델에서도  RMSE, MAE, R2 값을 비교
-```
+```python
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
 from sklearn.tree import DecisionTreeRegressor
@@ -155,6 +156,7 @@ for mean_test_score, params in zip(cvres["mean_test_score"], cvres["params"]):
     
 # best_params_:  {'alpha': 0.1}, 그러나 alpha 값에 따른 score 변동 거의 없음.
 
+
 # 2. Lasso - alpha 조금만 키워도 계수가 완전히 0이 되는 변수 증가 
 # feaure selection, 중요한 변수만 택함
 param_grid = [
@@ -190,12 +192,12 @@ grid_search.fit(X_train, y_train)
 #### 예측 변수 조건을 변화시키며 시도
 ##### 1) raw_data의 분포
 ##### 2) 예측변수(강수량, 적설량) 로그화
-  ```
+  ```python
   X_features["강수량"] = np.log1p(X_features["강수량"])
   X_features["적설량"] = np.log1p(X_features["적설량"])
   ```
 ##### 3) 예측변수 정규화(Standard Scaler)
-  ```
+  ```python
   from sklearn.preprocessing import StandardScaler
   # 연속형 예측변수 추출
   scaled_cols = ["기온", "강수량", "풍속", "습도", "적설량", "미세먼지", "초미세먼지"]
@@ -206,7 +208,7 @@ grid_search.fit(X_train, y_train)
   X_features[scaled_cols] = X_scaled
   ```
 ##### 4) z-score 기준 이상치 제거
-  ```
+  ```python
   import scipy as sp
   import scipy.stats
 
@@ -231,7 +233,7 @@ grid_search.fit(X_train, y_train)
   df2 = df2.drop(all_outlier_idx)
   ```
 ##### 5) 예측변수 정규화(Minmax Scaler)
-  ```
+  ```python
   from sklearn.preprocessing import MinMaxScaler
 
   scaled_cols = ["기온", "강수량", "풍속", "습도", "적설량", "미세먼지", "초미세먼지"]
@@ -272,20 +274,17 @@ for model in [lr_reg, ridge_reg, lasso_reg, tree_reg, forest_reg]:
 
 ## Built with
 - 이정려
-  - raw_data 통합, 결측치 해결
-  - 원데이터 분석, Gridsearch CV
+  - raw_data 통합, 결측치 해결, 원데이터 분석, Gridsearch CV 
   - Readme 작성
   - GitHub: https://github.com/jungryo
   
 - 전예나
-  - 변수별 특성 파악(EDA)
-  - 목표변수 스케일링을 통한 분석
+  - 변수별 특성 파악(EDA), 목표변수 스케일링을 통한 분석
   - 발표자료 작성
   - GitHub: https://github.com/Yenabeam
 
 - 최재철
-  - raw data 전처리
-  - 예측변수 스케일링을 통한 분석 
+  - raw data 전처리, 예측변수 스케일링을 통한 분석 
   - 발표
   - GitHub: https://github.com/kkobooc
   
