@@ -38,11 +38,15 @@ pip install scipy
 - 각각의 배달데이터, 날씨데이터, 공기오염데이터, 공휴일데이터를 수집 및 병합 
 - 결측치 해결 (강수량, 적설량 -> 0, 기온 -> 검색하여 수동 입력, 미세먼지 -> 결측발생 월 평균값 입력)
 
+  <img src="https://user-images.githubusercontent.com/72846894/102119152-037c1200-3e84-11eb-94ec-3f255d79009e.png"></img>
+
+
 ### 2. 데이터 가공 및 전처리
-#### 범주형 예측변수 원핫인코딩
+#### 시간형 예측변수 원핫인코딩
 ```python
 df = pd.get_dummies(raw_data, columns=['연', '월', '일', '시간대', '요일', '공휴일'])
 ```
+  <img src="https://user-images.githubusercontent.com/72846894/102119210-1a226900-3e84-11eb-9f03-e3fab05eb19e.png"></img>
 #### 훈련용데이터 / 테스트데이터 분리 및 linear regression(initial trial)
 ```python
 from sklearn.linear_model import LinearRegression
@@ -68,15 +72,18 @@ r2 = r2_score(y_test, pred)
 print(rmse, mae_val, r2)
 
 ```
+<img src="https://user-images.githubusercontent.com/72846894/102119776-fad80b80-3e84-11eb-8851-950722616b1f.png"></img>
 #### 목표변수 로그화 - 편중되어 있는 타겟(통화건수)의 왜곡도 낮춤
 ```python
 # log 변환
 y_target_log = np.log1p(y_target)
 ```
-
+<img src="https://user-images.githubusercontent.com/72846894/102119880-21964200-3e85-11eb-8ab4-ba3378b3888a.png"></img>
 ```python
 print('RMSE : {} | MAE : {} | r2 : {} '.format(round(rmse_val,2),round(mae_val,2),round(r2,3)))
 ```
+<img src="https://user-images.githubusercontent.com/72846894/102120195-85206f80-3e85-11eb-82d1-28983df61263.png"></img>
+##### -> 목표변수 로그화로 이전 분석보다 r2 score는 증가하고, rmse는 감소하였음.
 #### 예측변수 이상치 확인(필요시 제거)
 ```python
 # 회귀계수 확인
@@ -90,9 +97,8 @@ coef_sort = coef.sort_values(ascending=False)[:20]
 
 sns.barplot(x=coef_sort.values, y=coef_sort.index);
 sns.regplot(x=X_features['시간대_18'], y=y_target_log, data =df );
-# 회귀계수 상위 5개 이상치 확인되지 않음 
 ```
-
+<img src="https://user-images.githubusercontent.com/72846894/102120332-be58df80-3e85-11eb-8084-bf73753b88b8.png"></img>
 ### 3. 모델 학습, 예측, 평가
 #### Linear regression, Ridge, Lasso, Decision Tree Regression, Randomforest Regression 모델에서도  RMSE, MAE, R2 값을 비교
 ```python
@@ -125,8 +131,8 @@ def get_model_predict(model, X_train, X_test, y_train, y_test, is_expm1=False):
 #모델별로 평가 확인 
 
 lr_reg = LinearRegression()
-ridge_reg = Ridge()
-lasso_reg = Lasso()
+ridge_reg = Ridge(alpha=0.1)
+lasso_reg = Lasso(alpha=0)
 tree_reg = DecisionTreeRegressor(random_state=13)
 forest_reg = RandomForestRegressor(n_estimators=100,random_state=13)
 
@@ -134,6 +140,7 @@ for model in [lr_reg, ridge_reg, lasso_reg,tree_reg,forest_reg]:
     get_model_predict(model,X_train, X_test, y_train, y_test, is_expm1=True)
 
 ```
+<img src="https://user-images.githubusercontent.com/72846894/102120513-fe1fc700-3e85-11eb-9a8f-d0a05dab4d06.png"></img>
 #### Ridge, Lasso, Randomforest 모델의 하이퍼파라미터 튜닝 시도 후 최적의 하이퍼파라미터 확인
 ```python
 from sklearn.model_selection import GridSearchCV
@@ -155,8 +162,10 @@ for mean_test_score, params in zip(cvres["mean_test_score"], cvres["params"]):
     print(mean_test_score, params)
     
 # best_params_:  {'alpha': 0.1}, 그러나 alpha 값에 따른 score 변동 거의 없음.
+```
+<img src="https://user-images.githubusercontent.com/72846894/102120714-47701680-3e86-11eb-8bb4-403e91795e76.png"></img>
 
-
+```python
 # 2. Lasso - alpha 조금만 키워도 계수가 완전히 0이 되는 변수 증가 
 # feaure selection, 중요한 변수만 택함
 param_grid = [
@@ -173,8 +182,9 @@ for mean_test_score, params in zip(cvres["mean_test_score"], cvres["params"]):
     print(mean_test_score, params)  
 # best_params_:  {'alpha': 0} : 이 데이터로는 Lasso는 하지 않는 것이 바람직.
 # alpha 값 감소에 따라 mean_test_score 급격히 감소
-
-
+```
+<img src="https://user-images.githubusercontent.com/72846894/102120849-6ff81080-3e86-11eb-9999-ca991c44bcdc.png"></img>
+```python
 # 3. Randomforest - 가장 복잡한 모델로, 예측 성능은 좋으나 모델이 복잡하고, 가역성이 좋지않음.
   param_grid = [
     {'n_estimators': [30, 50, 70, 100], 'max_features':[2,4,6,8]},
@@ -188,14 +198,18 @@ grid_search = GridSearchCV(forest_reg, param_grid, cv=5,
 grid_search.fit(X_train, y_train)
 # best_params_: {'max_features': 8, 'n_estimators': 100}
   ```
+<img src="https://user-images.githubusercontent.com/72846894/102120913-87cf9480-3e86-11eb-9d74-f321d296739d.png"></img>
 
 #### 예측 변수 조건을 변화시키며 시도
-##### 1) raw_data의 분포
-##### 2) 예측변수(강수량, 적설량) 로그화
+##### 1) raw_data의 분포 - 강수량과 적설량에서 편중 심함
+<img src="https://user-images.githubusercontent.com/72846894/102120983-9ddd5500-3e86-11eb-85dd-259f8ef55c73.png"></img>
+##### 2) 예측변수(강수량, 적설량) 로그화 -> X축의 범위가 줄어듬
   ```python
   X_features["강수량"] = np.log1p(X_features["강수량"])
   X_features["적설량"] = np.log1p(X_features["적설량"])
   ```
+<img src="https://user-images.githubusercontent.com/72846894/102121275-0f1d0800-3e87-11eb-953f-43dce0314364.png"></img>
+<img src="https://user-images.githubusercontent.com/72846894/102121302-1ba16080-3e87-11eb-9377-33708d67f8fd.png"></img>
 ##### 3) 예측변수 정규화(Standard Scaler)
   ```python
   from sklearn.preprocessing import StandardScaler
@@ -207,6 +221,8 @@ grid_search.fit(X_train, y_train)
   X_scaled = scaler.transform(X_features[scaled_cols])
   X_features[scaled_cols] = X_scaled
   ```
+ <img src="https://user-images.githubusercontent.com/72846894/102121412-4c819580-3e87-11eb-96bd-b6b7cf1dee56.png"></img>
+ <img src="https://user-images.githubusercontent.com/72846894/102121428-51dee000-3e87-11eb-9a49-737f25601698.png"></img>
 ##### 4) z-score 기준 이상치 제거
   ```python
   import scipy as sp
@@ -232,6 +248,8 @@ grid_search.fit(X_train, y_train)
   all_outlier_idx = sum(outlier_idx_list, [])
   df2 = df2.drop(all_outlier_idx)
   ```
+  <img src="https://user-images.githubusercontent.com/72846894/102121462-5a371b00-3e87-11eb-9c1a-66bbb380f4cf.png"></img>
+  <img src="https://user-images.githubusercontent.com/72846894/102121485-628f5600-3e87-11eb-9b2c-4ab6ca238e63.png"></img>
 ##### 5) 예측변수 정규화(Minmax Scaler)
   ```python
   from sklearn.preprocessing import MinMaxScaler
@@ -243,6 +261,9 @@ grid_search.fit(X_train, y_train)
   X_scaled = scaler.transform(X_features[scaled_cols])
   X_features[scaled_cols] = X_scaled
   ```
+  <img src="https://user-images.githubusercontent.com/72846894/102121496-67eca080-3e87-11eb-9be2-01d1e2cd8188.png"></img>
+  <img src="https://user-images.githubusercontent.com/72846894/102121526-720e9f00-3e87-11eb-8444-0e94aa0fbdc6.png"></img>
+  ##### -> 다양한 스케일링을 시도해 보았으나 성능에 두드러진 변화를 주지 않음
   
 
 ### 4. 모델별 교차 검증
@@ -264,10 +285,18 @@ def display_socres(model):
 for model in [lr_reg, ridge_reg, lasso_reg, tree_reg, forest_reg]:
     display_socres(model)
 ```
+  <img src="https://user-images.githubusercontent.com/72846894/102121624-99656c00-3e87-11eb-8558-7fe78866a33e.png"></img>
+  
+  - scoring = "r2"
+  
+  <img src=https://user-images.githubusercontent.com/72846894/102121645-9f5b4d00-3e87-11eb-8936-706c1530a9c6.png></img>
+##### -> 모든 모델의 교차검증에서 표준편차가 0.01대로 나타남-> 전체적인 데이터에서 일반화된 예측성능을 보인다고 할 수있음. 
 
 ### 5. 프로젝트를 마치며 
-- 모든 모델에서 R2 score 0.8 이상의 좋은 성능을 나타냈고, RMSE 역시 15 내외로 준수하였음. 
+- 모든 모델에서 R2 score 0.8 이상의 좋은 성능을 나타냈고, RMSE 역시 15 내외로 준수하였음.
+- 목표변수만 로그화하고, 예측변수 스케일링 하지 않았을때 가장 좋은 예측 성능을 보인다.
 - 복잡한 모델(Randomforest)의 성능은 우수하나, 속도가 느리고 가역성이 떨어지는 단점이 있다.
+- 우리의 데이터는 linear regression 분석시, 모델의 단순성에 비해 뛰어난 예측 성능을 가지고 있다고 할수 있다.(lin r2/rmse: 0.912/15.01, rf r2/rmse: 0.941/12.31)
 - 선형회귀분석 이외의 다양한 모델을 특징을 학습하였음.
 - 교차검증 및 하이퍼파라미터에 대한 이해도와 활용 기술을 익힘.
 - 데이터의 스케일링, 모델의 복잡도, 예측성능 등을 다각도로 고려할 것.
