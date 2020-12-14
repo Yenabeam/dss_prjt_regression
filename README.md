@@ -26,3 +26,13 @@ pip install scipy
   - [서울시열린데이터광장](https://data.seoul.go.kr/dataList/OA-2218/F/1/datasetView.do)
 - 한국 공휴일 데이터
   - [공공데이터포털](https://data.go.kr/index.do)
+
+
+## 분석 진행순서
+1. 데이터가공 및 전처리
+2. 예측변수 및 목표변수 스케일링
+3. 모델 학습, 예측, 평가 
+4. 모델 검증
+
+### 1. 데이터가공 및 전처리
+- 
